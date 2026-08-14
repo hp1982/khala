@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# generated prisma client
+src/generated/
+
+# database
+prisma/*.db
+prisma/*.db-journal
+
+# environment
+.env
+.env.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
