@@ -24,3 +24,32 @@ model Post {
   authorId  Int
   createdAt DateTime @default(now())
 }
+
+// 账号表
+model Account {
+  id          Int       @id @default(autoincrement())
+  username    String    @unique // 登录名
+  password    String // bcrypt 哈希
+  salt        String // 注册时生成的加盐随机数
+  nickname    String?
+  email       String?   @unique
+  status      Int       @default(1) // 1=正常 2=禁用
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sessions    Session[]
+}
+
+// 会话表（登出 = 删除服务端 session）
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique // 登录时签发的随机 token
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId Int
+  userAgent String?
+  ip        String?
+  expiresAt DateTime // 过期时间（7 天）
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+}
