@@ -53,3 +53,226 @@ model Session {
 
   @@index([accountId])
 }
+
+// 管理员表
+model Admin {
+  id               Int                 @id @default(autoincrement())
+  username         String              @unique // 登录名
+  password         String // bcrypt 哈希
+  salt             String // 注册时生成的加盐随机数
+  nickname         String?
+  email            String?             @unique
+  role             Int                 @default(2) // 1=超级管理员 2=普通管理员
+  status           Int                 @default(1) // 1=正常 2=禁用
+  lastLoginAt      DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  sessions         AdminSession[]
+  weightFiles      WeightFile[]
+  models           Model[]
+  mmprojs          Mmproj[]
+  draftModels      DraftModel[]
+  diffusionModels  DiffusionModel[]
+  quantizedModels  QuantizedModel[]
+  creators         Creator[]
+  qors             Qor[]
+  countries        Country[]
+  launchers        Launcher[]
+  launcherVersions LauncherVersion[]
+}
+
+// 管理员会话表（登出 = 删除服务端 session）
+model AdminSession {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique // 登录时签发的随机 token
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId   Int
+  userAgent String?
+  ip        String?
+  expiresAt DateTime // 过期时间（7 天）
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
+
+// 权重文件表
+model WeightFile {
+  id              Int       @id @default(autoincrement())
+  name            String?   @unique
+  size            String?
+  hashType        Int?
+  downloadAddress String?
+  fileHash        String?
+  qbit            Int?
+  isSplit         Boolean   @default(false)
+  admin           Admin     @relation(fields: [adminId], references: [id])
+  adminId         Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  mmprojs         Mmproj[]
+  draftModels     DraftModel[]
+  diffusionModels DiffusionModel[]
+  quantizedModels QuantizedModel[]
+
+  @@map("weight_file")
+}
+
+/* type字段（1：Image-Text-to-Text，2：Image-Text-to-Video） */
+model Model {
+  id              Int                @id @default(autoincrement())
+  name            String?
+  type            Int? // 1：Image-Text-to-Text，2：Image-Text-to-Video
+  parameter       String?
+  contextWindows  Int?
+  hasDraft        Int?
+  hasMmproj       Int?
+  hasDiffusion    Int                @default(0)
+  creator         Creator?           @relation(fields: [creatorId], references: [id])
+  creatorId       Int?
+  qor             Qor?               @relation(fields: [qorId], references: [id])
+  qorId           Int?
+  launcher        Launcher?          @relation(fields: [launcherId], references: [id])
+  launcherId      Int?
+  admin           Admin              @relation(fields: [adminId], references: [id])
+  adminId         Int
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  mmprojs         Mmproj[]
+  draftModels     DraftModel[]
+  diffusionModels DiffusionModel[]
+  quantizedModels QuantizedModel[]
+
+  @@map("model")
+}
+
+model Mmproj {
+  id           Int        @id @default(autoincrement())
+  model        Model      @relation(fields: [modelId], references: [id])
+  modelId      Int
+  weightFile   WeightFile @relation(fields: [weightFileId], references: [id])
+  weightFileId Int
+  admin        Admin      @relation(fields: [adminId], references: [id])
+  adminId      Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("mmproj")
+}
+
+model DraftModel {
+  id           Int        @id @default(autoincrement())
+  model        Model      @relation(fields: [modelId], references: [id])
+  modelId      Int
+  weightFile   WeightFile @relation(fields: [weightFileId], references: [id])
+  weightFileId Int
+  admin        Admin      @relation(fields: [adminId], references: [id])
+  adminId      Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("draft_model")
+}
+
+/* type字段（1：text_frames，2：references，3：llm，4：audio_vae，5：video-vae） */
+model DiffusionModel {
+  id           Int        @id @default(autoincrement())
+  model        Model      @relation(fields: [modelId], references: [id])
+  modelId      Int
+  weightFile   WeightFile @relation(fields: [weightFileId], references: [id])
+  weightFileId Int
+  type         Int? // 1：text_frames，2：references，3：llm，4：audio_vae，5：video-vae
+  admin        Admin      @relation(fields: [adminId], references: [id])
+  adminId      Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("diffusion_model")
+}
+
+model QuantizedModel {
+  id           Int        @id @default(autoincrement())
+  model        Model      @relation(fields: [modelId], references: [id])
+  modelId      Int
+  weightFile   WeightFile @relation(fields: [weightFileId], references: [id])
+  weightFileId Int
+  admin        Admin      @relation(fields: [adminId], references: [id])
+  adminId      Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("quantized_model")
+}
+
+model Creator {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  country   Country? @relation(fields: [countryId], references: [id])
+  countryId Int?
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  adminId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  models    Model[]
+
+  @@map("creator")
+}
+
+model Qor {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  country   Country? @relation(fields: [countryId], references: [id])
+  countryId Int?
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  adminId   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  models    Model[]
+
+  @@map("qor")
+}
+
+model Country {
+  id        Int       @id @default(autoincrement())
+  name      String?
+  admin     Admin     @relation(fields: [adminId], references: [id])
+  adminId   Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  creators  Creator[]
+  qors      Qor[]
+
+  @@map("country")
+}
+
+model Launcher {
+  id              Int               @id @default(autoincrement())
+  name            String?
+  icon            Bytes?
+  admin           Admin             @relation(fields: [adminId], references: [id])
+  adminId         Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  models          Model[]
+  launcherVersion LauncherVersion[]
+
+  @@map("launcher")
+}
+
+/* platform(1:win32,2:macos,3:linux）os_arch(1:x64,2:arm64)gpu(1:NVIDIA,2:AMD,3:INTEL) */
+model LauncherVersion {
+  id         Int      @id @default(autoincrement())
+  platform   Int? // 1:win32 2:macos 3:linux
+  osArch     Int? // 1:x64 2:arm64
+  gpu        Int? // 1:NVIDIA 2:AMD 3:INTEL
+  cuda       Int?
+  name       String?
+  version    String?
+  launcher   Launcher @relation(fields: [launcherId], references: [id])
+  launcherId Int
+  admin      Admin    @relation(fields: [adminId], references: [id])
+  adminId    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("launcher_version")
+}
