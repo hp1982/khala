@@ -2,10 +2,13 @@ import { Module } from '@nestjs/common';
 import { createCrudController } from './crud.controller.factory';
 import { ModelsController } from './models.controller';
 import { ModelsService } from './models.service';
+import { LauncherVersionsController } from './launcher-versions.controller';
+import { LauncherVersionsService } from './launcher-versions.service';
 
 @Module({
   controllers: [
     ModelsController,
+    LauncherVersionsController,
     createCrudController({ route: 'weight-files', modelKey: 'weightFile' }),
     createCrudController({ route: 'models', modelKey: 'model' }),
     createCrudController({ route: 'mmprojs', modelKey: 'mmproj' }),
@@ -18,6 +21,6 @@ import { ModelsService } from './models.service';
     createCrudController({ route: 'launchers', modelKey: 'launcher' }),
     createCrudController({ route: 'launcher-versions', modelKey: 'launcherVersion' }),
   ],
-  providers: [ModelsService],
+  providers: [ModelsService, LauncherVersionsService],
 })
 export class DataModule {}

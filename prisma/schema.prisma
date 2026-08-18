@@ -265,10 +265,12 @@ model LauncherVersion {
   platform   Int? // 1:win32 2:macos 3:linux
   osArch     Int? // 1:x64 2:arm64
   gpu        Int? // 1:NVIDIA 2:AMD 3:INTEL
-  cuda       Int?
-  name       String?
-  version    String?
-  launcher   Launcher @relation(fields: [launcherId], references: [id])
+    cuda       Int?
+    name       String?
+    version    String?
+    downloadAddress       String?
+    extraDownloadAddress  String?
+    launcher   Launcher @relation(fields: [launcherId], references: [id])
   launcherId Int
   admin      Admin    @relation(fields: [adminId], references: [id])
   adminId    Int

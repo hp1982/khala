@@ -116,11 +116,19 @@
 `{name, icon}` — `icon` 为二进制(BLOB)
 
 ### 4.11 `/launcher-versions`
-`{platform, osArch, gpu, cuda, name, version, launcherId}`
+`{platform, osArch, gpu, cuda, name, version, downloadAddress?, extraDownloadAddress?, launcherId}`
 - `platform`: 1=win32，2=macos，3=linux
 - `osArch`: 1=x64，2=arm64
 - `gpu`: 1=NVIDIA，2=AMD，3=INTEL
 - `launcherId` 必填外键
+- `downloadAddress` / `extraDownloadAddress` 为下载地址（可选）
+
+**条件筛选：`GET /launcher-versions/filter`**（管理员或账号 token，账号只读）
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `platform` / `osArch` / `gpu` / `cuda` / `launcherId` | number | 可选，精确筛选，可组合 |
+
+返回数组（无分页，按 `id` 倒序）
 
 ---
 
