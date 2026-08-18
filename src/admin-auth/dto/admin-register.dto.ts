@@ -4,4 +4,5 @@ export class AdminRegisterDto {
   nickname?: string;
   email?: string;
   role?: number;
+  status?: number;
 }

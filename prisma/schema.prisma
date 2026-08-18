@@ -105,6 +105,7 @@ model WeightFile {
   fileHash        String?
   qbit            Int?
   isSplit         Boolean   @default(false)
+  type            Int       @default(0) // 0=quantized_model 1=mmproj 2=draft_model 3=diffusion_model_text_frames 4=diffusion_model_references 5=prompt_llm 6=audio_vae 7=video-vae
   admin           Admin     @relation(fields: [adminId], references: [id])
   adminId         Int
   createdAt       DateTime  @default(now())

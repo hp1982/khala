@@ -10,7 +10,7 @@ import {
   Type,
   UseGuards,
 } from '@nestjs/common';
-import { AdminAuthGuard } from '../common/admin-auth.guard';
+import { DataAccessGuard } from '../common/data-access.guard';
 import { CurrentAdmin } from '../common/current-admin.decorator';
 import { Roles } from '../common/roles.decorator';
 import { RolesGuard } from '../common/roles.guard';
@@ -27,7 +27,7 @@ export function createCrudController({
   modelKey,
 }: CrudControllerOptions): Type<any> {
   @Controller(route)
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(DataAccessGuard)
   class CrudController {
     protected readonly service: BaseCrudService;
 

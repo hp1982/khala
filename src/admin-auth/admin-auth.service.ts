@@ -48,6 +48,11 @@ export class AdminAuthService {
     const salt = await genSalt(10);
     const password = await hash(dto.password, salt);
     const role = dto.role === 1 ? 1 : 2;
+    const status = dto.status === 1 || dto.status === 2 ? dto.status : 1;
+
+    if (role === 1 && status === 1) {
+      await this.assertNoOtherNormalSuperAdmin();
+    }
 
     return this.prisma.admin.create({
       data: {
@@ -57,6 +62,7 @@ export class AdminAuthService {
         nickname: dto.nickname ?? null,
         email: dto.email ?? null,
         role,
+        status,
       },
       select: PUBLIC_ADMIN_SELECT,
     });
@@ -150,14 +156,37 @@ export class AdminAuthService {
   }
 
   async update(id: number, dto: AdminUpdateDto, current: Express.Request['admin']) {
-    if (dto.role !== undefined && current?.role !== 1) {
-      throw new ForbiddenException('仅超级管理员可修改角色');
+    if ((dto.role !== undefined || dto.status !== undefined) && current?.role !== 1) {
+      throw new ForbiddenException('仅超级管理员可修改角色或状态');
+    }
+
+    const existing = await this.prisma.admin.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true },
+    });
+    if (!existing) {
+      throw new NotFoundException(`管理员 ${id} 不存在`);
+    }
+
+    const newRole = dto.role !== undefined ? (dto.role === 1 ? 1 : 2) : existing.role;
+    const newStatus =
+      dto.status !== undefined ? (dto.status === 1 || dto.status === 2 ? dto.status : existing.status) : existing.status;
+
+    const wasNormalSuper = existing.role === 1 && existing.status === 1;
+    const willBeNormalSuper = newRole === 1 && newStatus === 1;
+
+    if (willBeNormalSuper && !wasNormalSuper) {
+      await this.assertNoOtherNormalSuperAdmin(id);
+    }
+    if (wasNormalSuper && !willBeNormalSuper) {
+      await this.assertOtherNormalSuperAdminExists(id);
     }
 
     const data: Record<string, unknown> = {};
     if (dto.nickname !== undefined) data.nickname = dto.nickname;
     if (dto.email !== undefined) data.email = dto.email;
-    if (dto.role !== undefined) data.role = dto.role;
+    if (dto.role !== undefined) data.role = newRole;
+    if (dto.status !== undefined) data.status = newStatus;
     if (dto.password) {
       const salt = await genSalt(10);
       data.salt = salt;
@@ -169,9 +198,43 @@ export class AdminAuthService {
   }
 
   async remove(id: number) {
+    const existing = await this.prisma.admin.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true },
+    });
+    if (!existing) {
+      throw new NotFoundException(`管理员 ${id} 不存在`);
+    }
+    if (existing.role === 1 && existing.status === 1) {
+      await this.assertOtherNormalSuperAdminExists(id);
+    }
     await this.prisma.adminSession.deleteMany({ where: { adminId: id } });
     await this.prisma.admin.delete({ where: { id } });
     return { success: true };
+  }
+
+  private async countNormalSuperAdmins(excludeId?: number): Promise<number> {
+    return this.prisma.admin.count({
+      where: {
+        ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
+        role: 1,
+        status: 1,
+      },
+    });
+  }
+
+  private async assertNoOtherNormalSuperAdmin(excludeId?: number) {
+    const count = await this.countNormalSuperAdmins(excludeId);
+    if (count >= 1) {
+      throw new ConflictException('已存在状态正常的超级管理员');
+    }
+  }
+
+  private async assertOtherNormalSuperAdminExists(excludeId: number) {
+    const count = await this.countNormalSuperAdmins(excludeId);
+    if (count === 0) {
+      throw new ForbiddenException('至少需要保留一个状态正常的超级管理员');
+    }
   }
 
   private generateToken(): string {
